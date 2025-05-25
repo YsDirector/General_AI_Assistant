@@ -1,0 +1,355 @@
+<!--
+   Copyright 2025 Guan Yushen
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - General AI Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+        .top-button-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+        .top-button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px 5px 0 0; /* Top-left and top-right rounded corners */
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .top-button-gray {
+            padding: 10px 20px;
+            background-color: #6e6e6e;
+            color: white;
+            border: none;
+            border-radius: 5px 5px 0 0; /* Top-left and top-right rounded corners */
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .top-button:hover {
+            background-color: #0056b3;
+        }
+        .top-button-gray:hover {
+            background-color: #6e6e6e;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            position: relative;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .button-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .toolbar-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        .toolbar-item {
+            padding: 10px;
+            background-color: #e9ecef;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .toolbar-item:hover {
+            background-color: #dfe2e5;
+        }
+        /* Modal styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
+            padding-top: 60px;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto; /* 15% from the top and centered */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 400px; /* Could be more or less, depending on screen size */
+            height: 400px; /* Increase height to accommodate new checkbox */
+            border-radius: 8px;
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], select {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .save-button {
+            width: 100%;
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .save-button:hover {
+            background-color: #218838;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        .action-buttons button {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+        }
+        .checkbox-label input[type="checkbox"] {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-button-container" style="margin-bottom: 0px;">
+        <button class="top-button-gray" id="promptButton">Toolbar</button>
+        <button class="top-button" id="modelButton">Model</button>
+    </div>
+    <div class="container">
+        <h1>Toolbar Settings</h1>
+        <div class="button-container">
+            <button id="addButton">Add</button>
+        </div>
+        <ul id="toolbarList" class="toolbar-list"></ul>
+    </div>
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Tools Information</h2>
+            <label for="toolname">Toolname:</label>
+            <input type="text" id="toolname" required>
+            <label for="prompt">Prompt:</label>
+            <input type="text" id="prompt" required>
+            <label for="model">Model:</label>
+            <select id="model" required></select>
+            <label class="checkbox-label">
+                <input type="checkbox" id="replaceCheckbox"> Insert mode
+            </label>
+            <button class="save-button" id="saveButton">Save</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTools();
+            loadModels();
+
+            document.getElementById('addButton').addEventListener('click', () => openModal(-1));
+
+            document.getElementById('saveButton').addEventListener('click', saveTool);
+
+            const modal = document.getElementById('myModal');
+            const closeBtn = document.getElementsByClassName('close')[0];
+
+            closeBtn.onclick = () => closeModal();
+            window.onclick = (event) => {
+                if (event.target == modal) {
+                    closeModal();
+                }
+            };
+
+            // Add event listener to settings button
+            document.getElementById('modelButton').addEventListener('click', () => {
+                window.location.href = 'ModelsSettings.html';
+            });
+        });
+
+        let selectedToolIndex = -1;
+
+        function loadTools() {
+            window.electron.loadTools().then(tools => {
+                console.log("Loaded tools:", tools); // Debugging log
+                const toolbarList = document.getElementById('toolbarList');
+                toolbarList.innerHTML = '';
+                tools.forEach((tool, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'toolbar-item';
+                    li.textContent = tool.Toolname;
+
+                    const actionButtons = document.createElement('div');
+                    actionButtons.className = 'action-buttons';
+
+                    const editButton = document.createElement('button');
+                    editButton.textContent = 'Edit';
+                    editButton.addEventListener('click', () => {
+                        selectedToolIndex = index;
+                        openModal(index);
+                    });
+
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.addEventListener('click', () => {
+                        selectedToolIndex = index;
+                        deleteTool();
+                    });
+
+                    actionButtons.appendChild(editButton);
+                    actionButtons.appendChild(deleteButton);
+
+                    li.appendChild(actionButtons);
+                    toolbarList.appendChild(li);
+                });
+            }).catch(error => {
+                console.error("Error loading tools:", error);
+            });
+        }
+
+        function loadModels() {
+            window.electron.loadModels().then(models => {
+                console.log("Loaded models:", models); // Debugging log
+                const modelSelect = document.getElementById('model');
+                modelSelect.innerHTML = ''; // Clear existing options
+                models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.Model;
+                    option.textContent = model.Model;
+                    modelSelect.appendChild(option);
+                });
+            }).catch(error => {
+                console.error("Error loading models:", error);
+            });
+        }
+
+        function openModal(index) {
+            document.getElementById('myModal').style.display = 'block';
+            if (index === -1) {
+                // Adding new tool
+                document.getElementById('toolname').value = '';
+                document.getElementById('prompt').value = '';
+                document.getElementById('model').selectedIndex = 0;
+                document.getElementById('replaceCheckbox').checked = false; // Default to unchecked
+            } else {
+                // Editing existing tool
+                window.electron.getTool(index).then(tool => {
+                    console.log("Editing tool:", tool); // Debugging log
+                    document.getElementById('toolname').value = tool.Toolname;
+                    document.getElementById('prompt').value = tool.Prompt;
+                    document.getElementById('model').value = tool.Model;
+                    document.getElementById('replaceCheckbox').checked = tool.Replace; // Set checkbox based on Replace value
+                }).catch(error => {
+                    console.error("Error getting tool:", error);
+                    alert('Error getting tool, please retry');
+                });
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('myModal').style.display = 'none';
+            location.reload(); // Reload the entire page
+        }
+
+        async function saveTool() {
+            const toolname = document.getElementById('toolname').value.trim();
+            const prompt = document.getElementById('prompt').value.trim();
+            const model = document.getElementById('model').value;
+            const replace = document.getElementById('replaceCheckbox').checked; // Get checkbox state
+
+            console.log("Saving tool:", { toolname, prompt, model, replace }); // Debugging log
+
+            if (!toolname || !prompt || !model) {
+                alert('All fields are mandatory');
+                return;
+            }
+
+            try {
+                await window.electron.saveTool(toolname, prompt, model, replace, selectedToolIndex);
+                loadTools();
+                closeModal();
+            } catch (error) {
+                console.error("Error saving tool:", error);
+                alert('Error saving tool, please retry');
+            }
+        }
+
+        async function deleteTool() {
+            try {
+                await window.electron.deleteTool(selectedToolIndex);
+                loadTools();
+                closeModal();
+            } catch (error) {
+                console.error("Error deleting tool:", error);
+                alert('Error deleting tool, please retry');
+            }
+        }
+    </script>
+</body>
+</html>

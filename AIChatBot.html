@@ -1,0 +1,371 @@
+<!--
+   Copyright 2025 Guan Yushen
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Bot - General AI Assistant</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f9;
+            font-family: Arial, sans-serif;
+        }
+        .chat-container {
+            width: 90%;
+            max-width: 600px;
+            height: 80vh;
+            max-height: 600px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .output-box, .input-box {
+            padding: 15px;
+            resize: none;
+            border: none;
+            outline: none;
+            font-size: 16px;
+        }
+        .output-box {
+            flex-grow: 1;
+            min-height: 200px;
+            border-bottom: 1px solid #ddd;
+            overflow-y: auto;
+        }
+        .input-box {
+            height: 100px;
+        }
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background-color: #f9f9fa;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #e0e0e0;
+        }
+        .settings-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 300px;
+            text-align: center;
+        }
+        .modal-input {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .close-button {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+        .loading-indicator {
+            color: #007bff;
+            font-weight: bold;
+        }
+        .emoji-button {
+            font-size: 20px;
+        }
+
+        /* Hide API Key and URL inputs */
+        #apiKeyInputContainer, #urlInputContainer {
+            display: none;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            .chat-container {
+                width: 95%;
+                height: 90vh;
+            }
+            .output-box {
+                min-height: 150px;
+            }
+            .input-box {
+                height: 80px;
+            }
+            .button-container {
+                flex-wrap: wrap;
+            }
+            .button-container div {
+                margin-bottom: 10px;
+            }
+        }
+        @media (min-width: 1200px) {
+            .chat-container {
+                width: 80%;
+                height: 90vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <button class="close-button" onclick="toggleSettingsModal()" style="display:none;" title="关闭设置">&times;</button>
+        <div id="outputBox" class="output-box"></div>
+        <div class="button-container">
+            <div>
+                <button onclick="clearChat()" title="Clear chat history">🗑️</button>
+            </div>
+            <button onclick="sendMessage()" title="Send message">✔️</button>
+        </div>
+        <textarea id="inputBox" class="input-box" placeholder="Input here... (Shift+Enter to insert a newline)" onkeydown="handleKeyPress(event)"></textarea>
+        <button class="setting-button" onclick="toggleSettingsModal()" style="position:absolute; top:10px; right:10px;" title="Settings">⚙️</button>
+        <div id="loadingIndicator" class="loading-indicator" style="display:none;">Loading...</div>
+    </div>
+    <div class="settings-modal" id="settingsModal">
+        <div class="modal-content">
+            <span class="close-button" onclick="toggleSettingsModal()" title="Close">&times;</span>
+            <h2>设置</h2>
+            <label for="modelInput">Model:</label>
+            <select id="modelInput" class="modal-input" onchange="updateApiKeyAndApiUrl()">
+                <!-- Options will be dynamically loaded here -->
+            </select>
+            <div id="apiKeyInputContainer">
+                <label for="apiKeyInput">API Key:</label>
+                <input type="text" id="apiKeyInput" class="modal-input" placeholder="API Key" readonly>
+            </div>
+            <div id="urlInputContainer">
+                <label for="urlInput">API URL:</label>
+                <input type="text" id="urlInput" class="modal-input" placeholder="API URL (e.g., https://api.openai.com/v1/chat/completions)" readonly>
+            </div>
+            <label><input type="checkbox" id="contextSwitch" onchange="saveContextSetting()"> Context</label>
+            <label><input type="checkbox" id="markdownSwitch" onchange="saveMarkdownSetting()"> Markdown</label>
+            <button onclick="saveSettings()" title="保存设置">💾</button>
+        </div>
+    </div>
+    <script src="marked.min.js"></script>
+    <script>
+        // Getting Elements
+        const outputBox = document.getElementById('outputBox');
+        const inputBox = document.getElementById('inputBox');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const settingsModal = document.getElementById('settingsModal');
+        // Set storage key
+        const API_KEY_STORAGE_KEY = 'apiKey';
+        const MODEL_STORAGE_KEY = 'model';
+        const URL_STORAGE_KEY = 'url';
+        const CONTEXT_SWITCH_STORAGE_KEY = 'contextSwitch';
+        const MARKDOWN_SWITCH_STORAGE_KEY = 'markdownSwitch';
+        // Initialization settings
+        let apiKey = localStorage.getItem(API_KEY_STORAGE_KEY) || '';
+        let model = localStorage.getItem(MODEL_STORAGE_KEY) || '';
+        let apiUrl = localStorage.getItem(URL_STORAGE_KEY) || '';
+        let contextSwitch = JSON.parse(localStorage.getItem(CONTEXT_SWITCH_STORAGE_KEY)) || false;
+        let markdownSwitch = JSON.parse(localStorage.getItem(MARKDOWN_SWITCH_STORAGE_KEY)) || false;
+
+        let models = [];
+
+        // Ensure execution after DOM loading is complete
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+        });
+
+        // Load Settings
+        async function loadSettings() {
+            try {
+                const response = await window.electron.loadModels();
+                models = response;
+                const modelSelect = document.getElementById('modelInput');
+                modelSelect.innerHTML = ''; // Clear existing options
+                models.forEach(modelItem => {
+                    const option = document.createElement('option');
+                    option.value = modelItem.Model;
+                    option.textContent = modelItem.Model;
+                    if (modelItem.Model === model) {
+                        option.selected = true;
+                    }
+                    modelSelect.appendChild(option);
+                });
+
+                // Update API Key and URL based on the selected model
+                updateApiKeyAndApiUrl();
+            } catch (error) {
+                console.error("Error loading models:", error);
+            }
+
+            document.getElementById('apiKeyInput').value = apiKey;
+            document.getElementById('urlInput').value = apiUrl;
+            document.getElementById('contextSwitch').checked = contextSwitch;
+            document.getElementById('markdownSwitch').checked = markdownSwitch;
+        }
+
+        // Update API Key and API URL
+        function updateApiKeyAndApiUrl() {
+            const modelSelect = document.getElementById('modelInput');
+            const selectedModel = modelSelect.value;
+            const selectedModelInfo = models.find(m => m.Model === selectedModel);
+
+            if (selectedModelInfo) {
+                apiKey = selectedModelInfo.API_Key;
+                apiUrl = selectedModelInfo.API_URL;
+                document.getElementById('apiKeyInput').value = apiKey;
+                document.getElementById('urlInput').value = apiUrl;
+            }
+        }
+
+        // Save settings
+        function saveSettings() {
+            apiKey = document.getElementById('apiKeyInput').value;
+            apiUrl = document.getElementById('urlInput').value;
+            contextSwitch = document.getElementById('contextSwitch').checked;
+            markdownSwitch = document.getElementById('markdownSwitch').checked;
+
+            // Get selected model from dropdown
+            const modelSelect = document.getElementById('modelInput');
+            model = modelSelect.value;
+
+            localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
+            localStorage.setItem(MODEL_STORAGE_KEY, model);
+            localStorage.setItem(URL_STORAGE_KEY, apiUrl);
+            localStorage.setItem(CONTEXT_SWITCH_STORAGE_KEY, contextSwitch);
+            localStorage.setItem(MARKDOWN_SWITCH_STORAGE_KEY, markdownSwitch);
+
+            toggleSettingsModal();
+        }
+
+        // Toggle settings modal
+        function toggleSettingsModal() {
+            if (settingsModal.style.display === 'none') {
+                settingsModal.style.display = 'flex';
+                document.querySelector('.chat-container .close-button').style.display = 'block';
+            } else {
+                settingsModal.style.display = 'none';
+                document.querySelector('.chat-container .close-button').style.display = 'none';
+            }
+        }
+
+        // Send Message
+        async function sendMessage() {
+            const message = inputBox.value.trim();
+            if (!message) return;
+
+            appendMessage('You', message);
+            inputBox.value = '';
+            showLoading();
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: [
+                            { role: 'system', content: '您是一名桌面AI助手。' },
+                            { role: 'user', content: message }
+                        ]
+                    })
+                });
+
+                const data = await response.json();
+                const reply = data.choices[0].message.content;
+                appendMessage('Assistant', reply);
+            } catch (error) {
+                console.error('Error fetching the response:', error);
+                appendMessage('Assistant', '发生错误');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Show loading
+        function showLoading() {
+            loadingIndicator.style.display = 'block';
+        }
+
+        // Hide loading
+        function hideLoading() {
+            loadingIndicator.style.display = 'none';
+        }
+
+        // Add message to output box
+        function appendMessage(sender, message) {
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message';
+            if (markdownSwitch && sender === 'Assistant') {
+                messageElement.innerHTML = `<strong>${sender}:</strong> ${marked(message)}`;
+            } else {
+                messageElement.textContent = `${sender}: ${message}`;
+            }
+            outputBox.appendChild(messageElement);
+            outputBox.scrollTop = outputBox.scrollHeight;
+        }
+
+        // Process input box key events
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // Clear chat history
+        function clearChat() {
+            outputBox.innerHTML = '';
+        }
+
+        // Save contact context thinking settings
+        function saveContextSetting() {
+            contextSwitch = document.getElementById('contextSwitch').checked;
+            localStorage.setItem(CONTEXT_SWITCH_STORAGE_KEY, contextSwitch);
+        }
+
+        // Save Markdown syntax settings
+        function saveMarkdownSetting() {
+            markdownSwitch = document.getElementById('markdownSwitch').checked;
+            localStorage.setItem(MARKDOWN_SWITCH_STORAGE_KEY, markdownSwitch);
+        }
+    </script>
+</body>
+</html>
