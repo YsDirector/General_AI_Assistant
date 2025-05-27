@@ -268,8 +268,7 @@
             localStorage.setItem(URL_STORAGE_KEY, apiUrl);
             localStorage.setItem(CONTEXT_SWITCH_STORAGE_KEY, contextSwitch);
             localStorage.setItem(MARKDOWN_SWITCH_STORAGE_KEY, markdownSwitch);
-
-            toggleSettingsModal();
+            location.reload(); // Reload the entire page v1.0.2
         }
 
         // Toggle settings modal
@@ -302,7 +301,7 @@
                     body: JSON.stringify({
                         model: model,
                         messages: [
-                            { role: 'system', content: '您是一名桌面AI助手。' },
+                            { role: 'system', content: 'You are a desktop AI assitent.' },
                             { role: 'user', content: message }
                         ]
                     })
@@ -313,7 +312,7 @@
                 appendMessage('Assistant', reply);
             } catch (error) {
                 console.error('Error fetching the response:', error);
-                appendMessage('Assistant', '发生错误');
+                appendMessage('Assistant', 'Error.');
             } finally {
                 hideLoading();
             }
