@@ -31,11 +31,13 @@ General assistant desktop application, providing chatbot, plugin management, too
 - Support for multi-language files (locales directory)
 
 #### Project Structure
+```
 general-assistant-2/
 ├── backend/ # Backend core
 ├── frontend/ # Frontend interface
 ├── plugin/ # Plugin system
 └── python_embed/ # Embedded Python environment
+```
 
 
 #### Main Function Entry Points
@@ -90,11 +92,13 @@ Email: yushendirector@126.com
 - 多语言文件支持 (locales 目录)
 
 #### 项目结构
+```
 general-assistant-2/
 ├── backend/ # 后端核心
 ├── frontend/ # 前端界面
 ├── plugin/ # 插件系统
 └── python_embed/ # 嵌入式 Python 环境
+```
 
 
 #### 主要功能入口
