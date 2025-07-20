@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><span id="chatbot-title">ChatBot</span></title>
+    <style>
+        /* 新增全局样式 */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        h1 {
+        text-align: center;
+        padding: 20px 0;
+        margin: 0;
+        background: linear-gradient(to right, #3498db, #2c3e50);
+        -webkit-background-clip: text;
+        background-clip: text; /* 添加标准属性 */
+        -webkit-text-fill-color: transparent;
+        color: transparent; /* 添加标准文本透明 */
+        }
+        
+        /* 修改聊天容器样式 */
+        #chat-container {
+            height: 400px;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #f9fbfd;
+            border-top: 1px solid #eaeaea;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        /* 新增发送者标签样式 */
+        .sender-label {
+            font-weight: bold;
+            margin: 0 10px;
+            width: 60px;
+            text-align: center;
+        }
+        
+        /* 修改消息容器为flex布局 */
+        .message-container {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        
+        .user-message-container {
+            justify-content: flex-end;
+        }
+        
+        .bot-message-container {
+            justify-content: flex-start;
+        }
+        
+        /* 调整消息气泡样式 */
+        .message {
+            max-width: 80%;
+            padding: 12px 18px; /* 移除内部标签后保留原有内边距 */
+            border-radius: 18px;
+            line-height: 1.5;
+        }
+        
+        /* 移除原有消息内部的强标签样式 */
+        .message p {
+            margin: 0;
+        }
+        
+        .user-message {
+            background: linear-gradient(to right, #3498db, #2980b9);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .bot-message {
+            background: #9fc7f8;
+            color: #2c3e50;
+            margin-right: auto;
+            border-bottom-left-radius: 5px;
+        }
+        
+        /* 修改输入区域样式 */
+        .input-area {
+            padding: 20px;
+            background: white;
+            display: flex;
+            gap: 10px;
+        }
+        
+        /* 调整文本域样式以匹配原输入框 */
+        #message-input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 1px solid #ddd;
+            border-radius: 16px; /* 调整为更适合多行输入的圆角 */
+            font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+            resize: vertical; /* 允许垂直调整大小 */
+            font-family: inherit; /* 继承字体 */
+            min-height: 50px; /* 设置最小高度 */
+        }
+        
+        #message-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 2px 10px rgba(52, 152, 219, 0.2);
+        }
+        
+        /* 新增按钮样式 */
+        .refresh-button {
+            background: transparent; /* 背景透明 */
+            border: none; /* 边框透明 */
+            color: #3498db; /* 图标颜色 */
+            font-size: 24px; /* 图标大小 */
+            cursor: pointer;
+            margin-left: 20px; /* 靠左对齐 */
+            transition: all 0.3s; /* 添加过渡效果 */
+            box-shadow: none;
+        }
+
+        .refresh-button:hover {
+            transform: scale(1.1); /* 鼠标悬停时放大 */
+        }
+
+        /* 修改按钮样式 */
+        button {
+            background: linear-gradient(to right, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        /* 修改错误提示样式 */
+        #error-message {
+            color: #e74c3c;
+            background: #fdeded;
+            padding: 8px 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+            font-weight: 500;
+        }
+        
+        /* 新增加载动画 */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            padding: 12px 18px;
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #95a5a6;
+            border-radius: 50%;
+            margin: 0 3px;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+    </style>
+    <script src="http://localhost:54900/marked.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div id="chat-container"></div>
+        <div style="display: flex; padding: 0 20px;">
+            <button class="refresh-button" id="refresh-btn" title="Refresh chat">🔄️</button>
+        </div>
+        <div class="input-area">
+            <textarea 
+                id="message-input" 
+                placeholder="Please enter your question..." 
+                rows="3"
+                onkeydown="handleKeyDown(event)"
+            ></textarea>
+            <button id="send-button" onclick="startChat()">发送</button>
+        </div>
+        <div id="error-message">请输入有效内容</div>
+    </div>
+
+    <script>
+        let eventSource = null;
+        let messageElement = null;
+        let translations = {};
+        // 新增：维护对话历史
+        let conversationHistory = [];
+
+        function appendMessage(sender, content) {
+            const container = document.getElementById('chat-container');
+            
+            // 创建消息容器
+            const messageContainer = document.createElement('div');
+            messageContainer.className = `message-container ${sender === 'You' ? 'user-message-container' : 'bot-message-container'}`;
+            
+            // 创建发送者标签
+            const senderLabel = document.createElement('div');
+            senderLabel.className = 'sender-label';
+            senderLabel.textContent = sender;
+            
+            // 创建消息气泡
+            messageElement = document.createElement('div');
+            messageElement.className = `message ${sender === 'You' ? 'user-message' : 'bot-message'}`;
+            // 直接使用后端返回的HTML内容（已包含<br>标签）
+            messageElement.innerHTML = `<p>${content}</p>`;
+            
+            // 根据发送者类型确定标签位置
+            if (sender === 'You') {
+                messageContainer.appendChild(messageElement);
+                messageContainer.appendChild(senderLabel);
+            } else {
+                messageContainer.appendChild(senderLabel);
+                messageContainer.appendChild(messageElement);
+            }
+            
+            container.appendChild(messageContainer);
+            container.scrollTop = container.scrollHeight;
+            return messageElement;
+        }
+
+        // 新增多语言加载功能
+        function loadTranslations() {
+            // 从settings获取当前语言
+            fetch('http://localhost:54900/getConfig/settings.json')
+                .then(response => response.json())
+                .then(settings => {
+                    const lang = settings[0]?.language || 'zh-CN';
+                    return fetch(`http://localhost:54900/locales/${lang}.json`);
+                })
+                .then(response => response.json())
+                .then(data => {
+                    translations = data;
+                    applyTranslations();
+                })
+                .catch(error => {
+                    console.error('加载语言文件失败:', error);
+                    // 使用默认中文作为后备方案
+                    fetch('http://localhost:54900/locales/zh-CN.json')
+                        .then(response => response.json())
+                        .then(data => {
+                            translations = data;
+                            applyTranslations();
+                        });
+                });
+        }
+
+        // 应用翻译
+        function applyTranslations() {
+            if (!translations) return;
+            
+            // 添加空值检查，防止DOM元素未加载导致的TypeError
+            const chatbotTitle = document.getElementById('chatbot-title');
+            if (chatbotTitle) {
+                chatbotTitle.innerText = translations.chatbot || 'ChatBot';
+            }
+            
+            const refreshBtn = document.getElementById('refresh-btn');
+            if (refreshBtn) {
+                refreshBtn.title = translations.refreshButtonTitle || 'Refresh chat';
+            }
+            
+            const messageInput = document.getElementById('message-input');
+            if (messageInput) {
+                messageInput.placeholder = translations.chatbotInputPlaceholder || 'Please enter your question...';
+            }
+            
+            const sendButton = document.getElementById('send-button');
+            if (sendButton) {
+                sendButton.innerText = translations.sendButtonText || 'Send';
+            }
+            
+            const errorMessage = document.getElementById('error-message');
+            if (errorMessage) {
+                errorMessage.innerText = translations.errorRequiredContent || 'Please enter valid content';
+            }
+        }
+
+        // 页面加载时初始化
+        window.onload = function() {
+            loadTranslations();
+            fetch('http://localhost:54901/plugin/chatBot')
+                .then(response => response.json())
+                .then(data => {
+                    const input = document.getElementById('message-input');
+                    if (data.message) {
+                        input.value = data.message; // 填充 Clipboard 内容
+                    }
+                })
+                .catch(error => {
+                    console.error('获取 Clipboard 内容失败:', error);
+                });
+            
+            // 新增：绑定刷新按钮点击事件
+            document.getElementById('refresh-btn').addEventListener('click', refreshChat);
+        };
+
+        function startChat() {
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+            const errorDiv = document.getElementById('error-message');
+
+            if (!message) {
+                errorDiv.style.display = 'block';
+                input.focus();
+                return;
+            } else {
+                errorDiv.style.display = 'none';
+            }
+
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            // 新增：将用户消息加入对话历史
+            conversationHistory.push({ role: 'user', content: message });
+            appendMessage('You', message);
+            
+            // 添加正在输入的指示器
+            const typingIndicator = document.createElement('div');
+            typingIndicator.className = 'message bot-message typing-indicator';
+            typingIndicator.innerHTML = `
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            `;
+            document.getElementById('chat-container').appendChild(typingIndicator);
+            messageElement = typingIndicator;
+            document.getElementById('chat-container').scrollTop = 
+                document.getElementById('chat-container').scrollHeight;
+
+            try {
+                // 修改：发送整个对话历史
+                const url = new URL('http://localhost:54901/plugin/chatBot');
+                url.searchParams.append('messages', JSON.stringify(conversationHistory));
+                eventSource = new EventSource(url.toString());
+                
+                eventSource.onmessage = function(event) {
+                    const raw = event.data.trim();
+                    const data = raw.replace(/^data:/, '');
+                    
+                    if (data === '[END]') {
+                        eventSource.close();
+                        if (typingIndicator.parentNode) {
+                            typingIndicator.parentNode.removeChild(typingIndicator);
+                        }
+                        // 自动应用Markdown解析
+                        applyMarkdown();
+                        // 新增：将AI回复加入对话历史
+                        if (messageElement) {
+                            const aiContent = messageElement.querySelector('p')?.innerHTML || messageElement.innerHTML;
+                            conversationHistory.push({ role: 'assistant', content: aiContent });
+                        }
+                        return;
+                    }
+                    
+                    if (data && data !== '[OBJECT END]') {
+                        if (typingIndicator.parentNode) {
+                            typingIndicator.parentNode.removeChild(typingIndicator);
+                        }
+                        
+                        if (!messageElement || messageElement.className.includes('typing-indicator')) {
+                            // 直接使用后端返回的内容（已包含<br>标签）
+                            messageElement = appendMessage('ChatBot', data);
+                        } else {
+                            // 直接追加后端返回的内容（已包含<br>标签）
+                            const contentElement = messageElement.querySelector('p');
+                            if (contentElement) {
+                                contentElement.innerHTML += data;
+                            } else {
+                                messageElement.innerHTML += data;
+                            }
+                        }
+                        
+                        document.getElementById('chat-container').scrollTop = 
+                            document.getElementById('chat-container').scrollHeight;
+                    }
+                };
+
+                eventSource.onerror = function(err) {
+                    console.error('SSE连接异常:', err);
+                    if (typingIndicator.parentNode) {
+                        typingIndicator.parentNode.removeChild(typingIndicator);
+                    }
+                    messageElement = appendMessage('ChatBot', '连接异常，请刷新重试');
+                    eventSource.close();
+                };
+            } catch (e) {
+                console.error('创建EventSource失败:', e);
+                if (typingIndicator.parentNode) {
+                    typingIndicator.parentNode.removeChild(typingIndicator);
+                }
+                messageElement = appendMessage('ChatBot', '连接失败，请检查网络');
+            }
+            
+            // 清空输入框
+            input.value = '';
+        }
+
+        // 新增刷新聊天功能
+        function refreshChat() {
+            const chatContainer = document.getElementById('chat-container');
+            chatContainer.innerHTML = ''; // 清空聊天记录
+            conversationHistory = []; // 清空对话历史
+        }
+
+        // 修改Markdown解析功能
+        function applyMarkdown() {
+            // 获取最新创建的机器人消息元素
+            const latestBotMessage = document.querySelector('.bot-message:last-child');
+            if (!latestBotMessage) return;
+            
+            // 新增：处理连续的两个<br>标签，替换为一个
+            let html = latestBotMessage.innerHTML;
+            // 正则表达式匹配连续的两个<br>标签（包括自闭合标签）
+            html = html.replace(/(<br\s*\/?>\s*){2}/gi, '<br>');
+            latestBotMessage.innerHTML = html;
+            
+            // 遍历消息中的所有元素
+            const elements = latestBotMessage.querySelectorAll('*');
+            elements.forEach(element => {
+                // 递归处理所有文本节点
+                processTextNodes(element);
+            });
+            
+            console.log('Markdown解析完成');
+        }
+        
+        // 新增：递归处理文本节点的函数
+        function processTextNodes(node) {
+            // 如果是文本节点，直接解析
+            if (node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== '') {
+                const parent = node.parentNode;
+                const htmlContent = marked.parse(node.textContent);
+                
+                // 创建临时容器解析 Markdown
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlContent;
+                
+                // 用解析后的内容替换文本节点
+                while (tempDiv.firstChild) {
+                    parent.insertBefore(tempDiv.firstChild, node);
+                }
+                parent.removeChild(node);
+            }
+            // 如果是元素节点，递归处理其子节点
+            else if (node.nodeType === Node.ELEMENT_NODE) {
+                const childNodes = Array.from(node.childNodes);
+                childNodes.forEach(childNode => {
+                    processTextNodes(childNode);
+                });
+            }
+        }
+
+        // 添加键盘事件处理函数
+        function handleKeyDown(event) {
+            // 当按下Enter键且没有按下Shift键时，触发发送
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault(); // 阻止默认换行行为
+                startChat(); // 调用发送函数
+            }
+            // 如果按下Shift+Enter，则允许换行（默认行为）
+        }
+    </script>
+</body>
+</html>
