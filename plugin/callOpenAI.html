@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><span id="config-title">OpenAI 配置</span></title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 5px;
+            margin-top: 5px;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 400px;
+            background-color: black;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        /* 新增样式：调整复选框与标签的布局 */
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+        }
+        .checkbox-label input[type="checkbox"] {
+            margin-right: 5px;
+        }
+    </style>
+    <script>
+        // 新增多语言加载功能
+        function loadTranslations() {
+            fetch('http://localhost:54900/getConfig/settings.json')
+                .then(response => response.json())
+                .then(settings => {
+                    const lang = settings[0]?.language || 'zh-CN';
+                    return fetch(`http://localhost:54900/locales/${lang}.json`);
+                })
+                .then(response => response.json())
+                .then(data => {
+                    translations = data;
+                    applyTranslations();
+                })
+                .catch(error => {
+                    console.error('加载语言文件失败:', error);
+                    fetch('http://localhost:54900/locales/zh-CN.json')
+                        .then(response => response.json())
+                        .then(data => {
+                            translations = data;
+                            applyTranslations();
+                        });
+                });
+        }
+
+        // 应用翻译
+        function applyTranslations() {
+            if (!translations) return;
+            
+            // 添加空值检查，防止DOM元素未加载导致的TypeError
+            const configTitle = document.getElementById('config-title');
+            if (configTitle) {
+                configTitle.innerText = translations.openAIConfig || 'OpenAI 配置';
+            }
+
+            const labels = {
+                temperatureLabel: 'temperature',
+                topPLabel: 'top_p',
+                nLabel: 'n',
+                streamLabel: 'stream',
+                replaceLabel: 'replace', // 新增标签翻译
+                stopLabel: 'stop',
+                maxTokensLabel: 'max_tokens',
+                presencePenaltyLabel: 'presence_penalty',
+                frequencyPenaltyLabel: 'frequency_penalty',
+                logitBiasLabel: 'logit_bias'
+            };
+
+            Object.entries(labels).forEach(([spanId, key]) => {
+                const element = document.getElementById(spanId);
+                if (element) {
+                    element.textContent = translations[`config_${key}`] || element.textContent;
+                }
+            });
+
+            // 更新保存按钮文本
+            const saveButton = document.querySelector('button[type="submit"]');
+            if (saveButton) {
+                saveButton.textContent = translations.saveConfiguration || '保存配置';
+            }
+
+            // 更新返回按钮文本
+            const backButton = document.querySelector('button[onclick="history.back()"]');
+            if (backButton) {
+                backButton.textContent = translations.backToPrevious || '返回上一页';
+            }
+
+            // 更新tooltip内容
+            const tooltips = {
+                temperatureTooltip: 'config_temperature_desc',
+                topPTooltip: 'config_top_p_desc',
+                nTooltip: 'config_n_desc',
+                streamTooltip: 'config_stream_desc',
+                replaceTooltip: 'config_replace_desc', // 新增提示翻译
+                stopTooltip: 'config_stop_desc',
+                maxTokensTooltip: 'config_max_tokens_desc',
+                presencePenaltyTooltip: 'config_presence_penalty_desc',
+                frequencyPenaltyTooltip: 'config_frequency_penalty_desc',
+                logitBiasTooltip: 'config_logit_bias_desc'
+            };
+
+            Object.entries(tooltips).forEach(([tooltipId, key]) => {
+                const element = document.getElementById(tooltipId);
+                if (element) {
+                    element.textContent = translations[key] || element.textContent;
+                }
+            });
+        }
+
+        // 页面加载时初始化
+        window.onload = function() {
+            loadTranslations();  // 新增多语言支持
+            
+            // 原有初始化代码保持不变
+            const defaultConfig = {
+                "temperature": 0.7,
+                "top_p": 1.0,
+                "n": 1,
+                "stream": false,
+                "replace": false, // 新增默认值
+                "stop": null,
+                "max_tokens": 4096,
+                "presence_penalty": 0.0,
+                "frequency_penalty": 0.0,
+                "logit_bias": {}
+            };
+
+            document.getElementById('openaiConfigForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                const formData = new FormData(event.target);
+                const config = {};
+
+                // 确保replace字段始终存在，默认为false
+                config.replace = false;
+                
+                for (const [key, value] of formData.entries()) {
+                    if (key === 'stream' || key === 'replace') {
+                        config[key] = value === 'on';
+                    } else if (key === 'logit_bias') {
+                        try {
+                            const parsedValue = JSON.parse(value);
+                            if (typeof parsedValue !== 'object' || parsedValue === null) {
+                                throw new Error('Logit Bias 必须是一个有效的 JSON 对象');
+                            }
+                            config[key] = parsedValue;
+                        } catch (e) {
+                            alert(`Logit Bias 格式错误: ${e.message}`);
+                            return;
+                        }
+                    } else if (key === 'temperature' || key === 'top_p' || key === 'presence_penalty' || key === 'frequency_penalty') {
+                        config[key] = parseFloat(value);
+                    } else if (key === 'n' || key === 'max_tokens') {
+                        config[key] = parseInt(value);
+                    } else if (key === 'stop' && value === '') {  // 新增: 如果 stop 为空字符串，设置为 null
+                        config[key] = null;
+                    } else {
+                        config[key] = value;
+                    }
+                }
+
+                fetch('/savePluginConfig/callOpenAI.json', {  // 修改接口地址
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                }).then(response => response.json())
+                .then(data => {
+                    alert(translations.saveConfigurationSuccess || '配置已保存');
+                }).catch(error => {
+                    console.error('Error:', error);
+                    alert(translations.saveConfigurationFailed || '保存配置失败');
+                });
+            });
+
+            // Load existing configuration
+            fetch('/getConfig/callOpenAI.json')  // 明确指定文件名
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(config => {
+                    for (const [key, value] of Object.entries(config)) {
+                        const input = document.getElementById(key);
+                        if (input) {
+                            if (input.type === 'checkbox') {
+                                input.checked = value; // 复选框直接设置 checked 属性
+                            } else if (key === 'stop' && value === null) {
+                                input.value = '';  // 当 stop 为 null 时，显示为空字符串
+                            } else if (key === 'logit_bias' && typeof value === 'object') {
+                                input.value = JSON.stringify(value);  // 确保 logit_bias 显示为 JSON 字符串
+                            } else {
+                                input.value = value;
+                            }
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading config:', error);
+                    alert('加载配置失败，将使用默认值');
+
+                    // 使用默认值填充表单
+                    for (const [key, value] of Object.entries(defaultConfig)) {
+                        const input = document.getElementById(key);
+                        if (input) {
+                            if (input.type === 'checkbox') {
+                                input.checked = value; // 复选框直接设置 checked 属性
+                            } else if (key === 'stop' && value === null) {
+                                input.value = '';  // 当 stop 为 null 时，显示为空字符串
+                            } else if (key === 'logit_bias' && typeof value === 'object') {
+                                input.value = JSON.stringify(value);  // 确保 logit_bias 显示为 JSON 字符串
+                            } else {
+                                input.value = value;
+                            }
+                        }
+                    }
+                });
+        };
+    </script>
+</head>
+<body>
+    <h1><span id="config-title">OpenAI 配置</span></h1>
+    <form id="openaiConfigForm">
+        <label for="temperature">
+            <span id="temperatureLabel">Temperature (0.0 - 2.0)</span>
+            <span class="tooltip">❔
+                <span class="tooltiptext" id="temperatureTooltip">控制输出随机性的数值，范围从0到1。值越低，输出越确定；值越高，输出越随机。</span>
+            </span>
+        </label>
+        <input type="number" id="temperature" name="temperature" step="0.1" min="0.0" max="2.0" required>
+
+        <label for="top_p">
+            <span id="topPLabel">Top P (0.0 - 1.0)</span>
+            <span class="tooltip">❔
+                <span class="tooltiptext" id="topPTooltip">控制生成文本多样性的参数，范围从0到1。值越低，生成的文本越集中。</span>
+            </span>
+        </label>
+        <input type="number" id="top_p" name="top_p" step="0.1" min="0.0" max="1.0" required>
+
+        <label for="n">
+            <span id="nLabel">N</span>
+            <span class="tooltip">❔
+                <span class="tooltiptext" id="nTooltip">生成的备选结果数量。</span>
+            </span>
+        </label>
+        <input type="number" id="n" name="n" min="1" required>
+
+        <label for="stream" class="checkbox-label">
+            <input type="checkbox" id="stream" name="stream">
+            <span id="streamLabel">Stream</span>
+            <span class="tooltip">❔
+                <span class="tooltiptext" id="streamTooltip">是否启用流式传输。</span>
+            </span>
+        </label>
+
+        <label for="stop">
+            <span id="stopLabel">Stop</span>
+            <span class="tooltip">❔
+                <span class="tooltiptext" id="stopTooltip">停止生成的条件。比如涉及到敏感词汇时停止生成。</span>
+            </span>
+        </label>
+        <input type="text" id="stop" name="stop">
+
+        <label for="max_tokens">
+            <span id="maxTokensLabel">Max Tokens</span>
+            <span class="tooltip">❔
+                <span class="tooltiptext" id="maxTokensTooltip">生成的最大token数量。使用付费模型时可以减少该值以避免产生过高费用。推荐值：数学推理：40000；代码生成：32000；创意写作48000</span>
+            </span>
+        </label>
+        <input type="number" id="max_tokens" name="max_tokens" min="1" required>
+
+        <label for="presence_penalty">
+            <span id="presencePenaltyLabel">Presence Penalty (-2.0 - 2.0)</span>
+            <span class="tooltip">❔
+                <span class="tooltiptext" id="presencePenaltyTooltip">控制重复内容的惩罚因子，范围从-2到2。正值减少重复，负值增加重复。</span>
+            </span>
+        </label>
+        <input type="number" id="presence_penalty" name="presence_penalty" step="0.1" min="-2.0" max="2.0" required>
+
+        <label for="frequency_penalty">
+            <span id="frequencyPenaltyLabel">Frequency Penalty (-2.0 - 2.0)</span>
+            <span class="tooltip">❔
+                <span class="tooltiptext" id="frequencyPenaltyTooltip">控制高频词的惩罚因子，范围从-2到2。正值减少高频词，负值增加高频词。</span>
+            </span>
+        </label>
+        <input type="number" id="frequency_penalty" name="frequency_penalty" step="0.1" min="-2.0" max="2.0" required>
+
+        <label for="logit_bias">
+            <span id="logitBiasLabel">Logit Bias</span>
+            <span class="tooltip">❔
+                <span class="tooltiptext" id="logitBiasTooltip">调整特定token的权重，格式为JSON对象。</span>
+            </span>
+        </label>
+        <input type="text" id="logit_bias" name="logit_bias" placeholder='{"key": value}'>
+
+        <!-- 新增 Replace 配置项 -->
+        <label for="replace" class="checkbox-label">
+            <input type="checkbox" id="replace" name="replace">
+            <span id="replaceLabel">Replace</span>
+            <span class="tooltip">❔
+                <span class="tooltiptext" id="replaceTooltip">是否启用替换功能。</span>
+            </span>
+        </label>
+
+        <button type="submit"><span id="saveButtonText">保存配置</span></button>
+        <button type="button" onclick="history.back()" style="margin-left: 10px;"><span id="backButtonText">返回上一页</span></button>
+    </form>
+</body>
+</html>
