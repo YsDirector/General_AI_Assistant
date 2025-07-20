@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="title">设置</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="sidebar">
+        <ul>
+            <li><button onclick="window.location.href='general.html'" data-i18n="general">通用</button></li>
+            <li><button onclick="window.location.href='plugin.html'" data-i18n="plugins">插件</button></li>
+            <li><button onclick="window.location.href='models.html'" data-i18n="models">模型（AI）</button></li>
+            <li><button onclick="window.location.href='toolbar.html'" data-i18n="toolbar">工具栏</button></li>
+            <li><button class="active" data-i18n="about">关于</button></li>
+        </ul>
+    </div>
+    <div id="content" style="width: 80%; ">
+        <h1 data-i18n="about">关于</h1>
+        <ul id="plugin-list"></ul>
+
+        <div class="about-info">
+            <p><span data-i18n="author">作者:</span> YsDirector</p>
+            <p><span data-i18n="version">版本:</span> 2.0.0</p>
+            <p><span data-i18n="license">开源协议:</span> Apache License 2.0</p>
+            <p><span data-i18n="homepage">主页:</span> <a href="https://github.com/YsDirector/General_AI_Assistant" target="_blank">GitHub</a></p>
+            <p><span data-i18n="email">邮箱:</span> <a href="mailto:yushendirector@126.com"><EMAIL>yushendirector@126.com</a></p></p>
+        </div>
+
+        <script>
+            function changeLanguage(lang) {
+                document.documentElement.lang = lang;
+                fetch(`/locales/${lang}.json`)
+                    .then(response => response.json())
+                    .then(translations => {
+                        document.querySelectorAll('[data-i18n]').forEach(element => {
+                            const key = element.getAttribute('data-i18n');
+                            if (translations[key]) {
+                                element.textContent = translations[key];
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error loading translations:', error);
+                    });
+                localStorage.setItem('selectedLanguage', lang); // 确保语言信息存储到 localStorage
+            }
+
+            window.onload = () => {
+                const savedLang = localStorage.getItem('selectedLanguage') || 'zh-CN'; // 从 localStorage 中读取语言信息
+                document.documentElement.lang = savedLang; // 应用语言
+                changeLanguage(savedLang); // 调用 changeLanguage 函数以应用语言
+            };
+        </script>
+    </div>
+</body>
+</html>
