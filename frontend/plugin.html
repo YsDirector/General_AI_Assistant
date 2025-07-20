@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="title">设置</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* 新增样式：为“打开插件文件夹”按钮添加独立样式 */
+        #openPluginFolder {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            color: #333;
+            transition: color 0.3s ease;
+            position: relative; /* 添加相对定位，以便伪元素可以绝对定位 */
+            width: auto; /* 删除: width: 100%; */
+        }
+
+        #openPluginFolder:hover {
+            color: #007bff; /* 鼠标悬停时改变颜色 */
+        }
+
+        #openPluginFolder::after {
+            content: attr(data-i18n-tooltip); /* 修改：从 data-i18n-tooltip 属性中获取值 */
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            white-space: nowrap;
+            z-index: 10; /* 确保提示文字显示在最上层 */
+        }
+
+        #openPluginFolder:hover::after {
+            display: block;
+        }
+
+        /* 新增样式：将h1内容设置为flex布局，使按钮居右 */
+        h1 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        /* 页面主体样式 */
+        .content {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start; /* 修改：添加 align-items: flex-start */
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            margin-top: 0px; /* 修改：添加 margin-top: 0px */
+            padding-top: 0px;
+            padding-bottom: 0px;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <ul>
+            <li><button onclick="window.location.href='general.html'" data-i18n="general">通用</button></li>
+            <li><button class="active" data-i18n="plugins">插件</button></li>
+            <li><button onclick="window.location.href='models.html'" data-i18n="models">模型（AI）</button></li>
+            <li><button onclick="window.location.href='toolbar.html'" data-i18n="toolbar">工具栏</button></li>
+            <li><button onclick="window.location.href='about.html'" data-i18n="about">关于</button></li>
+        </ul>
+    </div>
+    <div id="content" style="width: 80%; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+        <h1 data-i18n="plugins">插件</h1>
+        <span style="flex-grow: 1;flex-grow: 1;width: 80%;"></span><button id="openPluginFolder" data-i18n-tooltip="openPluginFolderTooltip">📂</button>
+        <ul id="plugin-list"></ul>
+
+        <script>
+            function changeLanguage(lang) {
+                document.documentElement.lang = lang;
+                fetch(`/locales/${lang}.json`)
+                    .then(response => response.json())
+                    .then(translations => {
+                        document.querySelectorAll('[data-i18n]').forEach(element => {
+                            const key = element.getAttribute('data-i18n');
+                            if (translations[key]) {
+                                element.textContent = translations[key];
+                            }
+                        });
+                        // 新增：处理 data-i18n-tooltip 属性
+                        document.querySelectorAll('[data-i18n-tooltip]').forEach(element => {
+                            const key = element.getAttribute('data-i18n-tooltip');
+                            if (translations[key]) {
+                                element.setAttribute('data-i18n-tooltip', translations[key]);
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error loading translations:', error);
+                    });
+                localStorage.setItem('selectedLanguage', lang);
+            }
+
+            window.onload = () => {
+                const savedLang = localStorage.getItem('selectedLanguage') || 'zh-CN';
+                document.documentElement.lang = savedLang;
+                changeLanguage(savedLang);
+            };
+
+            document.addEventListener('DOMContentLoaded', function() {
+                fetch('/plugins')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const pluginList = document.getElementById('plugin-list');
+                        data.forEach(plugin => {
+                            const listItem = document.createElement('li');
+                            const link = document.createElement('a');
+                            link.href = `/plugin/${plugin}`;
+                            link.textContent = plugin;
+                            listItem.appendChild(link);
+                            pluginList.appendChild(listItem);
+                        });
+                    })
+                    .catch(error => console.error('Error loading plugins:', error));
+
+                document.getElementById('openPluginFolder').addEventListener('click', function() {
+                    fetch('/openPluginFolder')
+                        .then(response => {
+                            if (response.ok) {
+                            } else {
+                                alert(document.querySelector('[data-i18n="openPluginFolderError"]').textContent);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error opening plugin folder:', error);
+                            alert(document.querySelector('[data-i18n="openPluginFolderError"]').textContent);
+                        });
+                });
+            });
+        </script>
+    </div>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+

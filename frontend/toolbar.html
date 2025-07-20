@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="title">设置</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* 模态窗口样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 6% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+
+        /* 页面主体样式 */
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding-right: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            margin-top: 0px;
+            margin-left: 20px;
+            padding-top: 0px;
+            padding-bottom: 0px;
+        }
+
+        .container h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        /* 新增：为新增按钮添加特定样式 */
+        .container button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 2px;
+            width: auto;
+        }
+
+        .container button:hover {
+            background-color: #0056b3;
+        }
+
+        .container ul {
+            list-style-type: none;
+            padding: 0;
+            width: 100%;
+        }
+
+        .container li {
+            background-color: #fff;
+            padding: 10px;
+            margin-top: 5px;
+            margin-bottom: 1px;
+            border-radius: 4px;
+            box-shadow: 0 -3px 0px rgba(0, 0, 0, 0.1);
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        label {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        input {
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        /* 修改：调整包含“添加”按钮的div样式 */
+        .container div {
+            display: flex;
+            justify-content: flex-end; /* 修改：将内容靠右对齐 */
+            align-items: center;
+        }
+
+        .save-button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            width: auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <ul>
+            <li><button onclick="window.location.href='general.html'" data-i18n="general">通用</button></li>
+            <li><button onclick="window.location.href='plugin.html'" data-i18n="plugins">插件</button></li>
+            <li><button onclick="window.location.href='models.html'" data-i18n="models">模型（AI）</button></li>
+            <li><button class="active" data-i18n="toolbar">工具栏</button></li>
+            <li><button onclick="window.location.href='about.html'" data-i18n="about">关于</button></li>
+        </ul>
+    </div>
+    <div class="container" style="width: 80%;">
+        <h1 data-i18n="toolbar">工具栏</h1>
+        <div style="width: 100%; display: flex; justify-content: flex-end;">
+            <button onclick="openModal()" data-i18n="addTool">添加</button>
+        </div>
+        <ul id="tool-list"></ul>
+    </div>
+
+    <!-- 模态窗口 -->
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 data-i18n="editTool">编辑工具</h2>
+            <form id="toolForm">
+                <label for="toolname" data-i18n="toolNameLabel">工具名称:</label>
+                <input type="text" id="toolname" name="toolname" required>
+                <label for="plugin" data-i18n="pluginLabel">插件:</label>
+                <select id="plugin" name="plugin" required style="height: 32px;">
+                    <!-- 下拉菜单选项将通过 JavaScript 动态加载 -->
+                </select>
+                <label for="prompt" data-i18n="promptLabel">提示:</label>
+                <input type="text" id="prompt" name="prompt" required>
+                <label for="model" data-i18n="modelLabel">模型:</label>
+                <select id="model" name="model" required style="height: 32px;">
+                    <!-- 下拉菜单选项将通过 JavaScript 动态加载 -->
+                </select>
+                <button type="submit" class="save-button" style="margin-top: 10px;width: 70px;" data-i18n="save">保存</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function getTranslatedText(key) {
+            const savedLang = localStorage.getItem('selectedLanguage') || 'zh-CN';
+            return fetch(`/locales/${savedLang}.json`)
+                .then(response => response.json())
+                .then(translations => translations[key] || key);
+        }
+
+        // 修改 alert() 内容为动态获取翻译
+        function loadTools() {
+            fetch('/getConfig/toolbar.json')
+                .then(response => response.json())
+                .then(data => {
+                    const toolList = document.getElementById('tool-list');
+                    toolList.innerHTML = ''; // 清空现有内容
+                    data.forEach((tool, index) => {
+                        const li = document.createElement('li');
+                        li.style.display = 'flex';
+                        li.style.alignItems = 'center';
+                        li.style.padding = '0px';
+
+                        const toolName = document.createElement('span');
+                        toolName.textContent = tool.Toolname;
+                        toolName.style.flexGrow = '1';
+
+                        const buttonContainer = document.createElement('div');
+                        buttonContainer.style.marginLeft = 'auto';
+
+                        const editButton = document.createElement('button');
+                        editButton.setAttribute('data-i18n', 'edit');
+                        editButton.onclick = function() {
+                            openModal(index);
+                        };
+
+                        const deleteButton = document.createElement('button');
+                        deleteButton.setAttribute('data-i18n', 'delete');
+                        deleteButton.onclick = function() {
+                            deleteTool(index);
+                        };
+
+                        buttonContainer.appendChild(editButton);
+                        buttonContainer.appendChild(deleteButton);
+
+                        li.appendChild(toolName);
+                        li.appendChild(buttonContainer);
+
+                        toolList.appendChild(li);
+                    });
+
+                    updateDynamicButtonContent();
+                })
+                .catch(error => {
+                    console.error('Error loading tools:', error);
+                    getTranslatedText('loadToolsFailed').then(text => alert(text));
+                });
+        }
+
+        // 更新动态按钮内容
+        function updateDynamicButtonContent() {
+            const savedLang = localStorage.getItem('selectedLanguage') || 'zh-CN';
+            fetch(`/locales/${savedLang}.json`)
+                .then(response => response.json())
+                .then(translations => {
+                    document.querySelectorAll('[data-i18n]').forEach(element => {
+                        const key = element.getAttribute('data-i18n');
+                        if (translations[key]) {
+                            element.textContent = translations[key];
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading translations:', error);
+                });
+        }
+
+        // 全局变量，用于跟踪当前编辑的工具索引
+        let currentToolIndex = null;
+
+        // 新增：动态加载模型选项
+        function loadModelOptions() {
+            fetch('http://localhost:54900/getConfig/models.json')
+                .then(response => response.json())
+                .then(models => {
+                    const modelSelect = document.getElementById('model');
+                    modelSelect.innerHTML = ''; // 清空现有选项
+                    models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.Model;
+                        option.textContent = model.Model;
+                        modelSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading model files:', error);
+                    alert('加载模型失败');
+                });
+        }
+
+        // 打开模态窗口
+        function openModal(index) {
+            document.getElementById('myModal').style.display = 'block';
+            loadPluginOptions(); // 动态加载插件选项
+            loadModelOptions(); // 动态加载模型选项
+            if (index !== undefined) {
+                // 编辑现有工具
+                currentToolIndex = index;
+                fetch('/getConfig/toolbar.json')
+                    .then(response => response.json())
+                    .then(data => {
+                        const tool = data[index];
+                        document.getElementById('toolname').value = tool.Toolname;
+                        document.getElementById('plugin').value = tool.Plugin;
+                        document.getElementById('prompt').value = tool.Prompt;
+                        document.getElementById('model').value = tool.Model;
+                    })
+                    .catch(error => {
+                        console.error('Error loading tool:', error);
+                        alert('加载工具失败');
+                    });
+            } else {
+                // 添加新工具
+                currentToolIndex = null;
+                document.getElementById('toolname').value = '';
+                document.getElementById('plugin').value = '';
+                document.getElementById('prompt').value = '';
+                document.getElementById('model').value = '';
+            }
+        }
+
+        // 删除工具
+        function deleteTool(index) {
+            getTranslatedText('confirmDeleteTool').then(text => {
+                if (confirm(text)) {
+                    // 修改为新的统一删除接口格式
+                    fetch(`/deleteConfig/toolbar.json/${index}`, { method: 'DELETE' })
+                        .then(response => {
+                            if (response.ok) {
+                                loadTools(); // 刷新工具列表
+                            } else {
+                                console.error('Error deleting tool');
+                                getTranslatedText('deleteToolFailed').then(text => alert(text));
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error deleting tool:', error);
+                            getTranslatedText('deleteToolFailed').then(text => alert(text));
+                        }
+                    );
+                }
+            });
+        }
+
+        // 关闭模态窗口
+        function closeModal() {
+            document.getElementById('myModal').style.display = 'none';
+        }
+
+        // 提交表单并保存工具
+        document.getElementById('toolForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const newTool = {
+                Toolname: formData.get('toolname'),
+                Plugin: formData.get('plugin'),
+                Prompt: formData.get('prompt'),
+                Model: formData.get('model'),
+                Replace: true
+            };
+
+            // 根据是否有 currentToolIndex 判断是添加新工具还是编辑现有工具
+            if (currentToolIndex !== null) {
+                // 编辑现有工具
+                fetch('/saveConfig/toolbar.json', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        index: currentToolIndex,
+                        tool: newTool,
+                        action: 'update'
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        getTranslatedText('toolUpdated').then(text => alert(text));
+                        closeModal();
+                        loadTools(); // 刷新工具列表
+                    } else {
+                        console.error('Error updating tool');
+                        getTranslatedText('updateToolFailed').then(text => alert(text));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating tool:', error);
+                    getTranslatedText('updateToolFailed').then(text => alert(text));
+                });
+            } else {
+                // 添加新工具
+                fetch('/saveConfig/toolbar.json', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tool: newTool,
+                        action: 'add'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    getTranslatedText('toolSaved').then(text => alert(text));
+                    closeModal();
+                    loadTools(); // 刷新工具列表
+                })
+                .catch(error => {
+                    console.error('Error saving tool:', error);
+                    getTranslatedText('saveToolFailed').then(text => alert(text));
+                });
+            }
+        });
+
+        // 页面加载时加载工具列表
+        window.onload = loadTools;
+
+        // 新增：动态加载插件选项
+        function loadPluginOptions() {
+            fetch('/getPluginFiles') // 假设后端提供一个接口返回 plugin 文件夹内的 .py 文件列表
+                .then(response => response.json())
+                .then(files => {
+                    const pluginSelect = document.getElementById('plugin');
+                    pluginSelect.innerHTML = ''; // 清空现有选项
+                    files.forEach(file => {
+                        const option = document.createElement('option');
+                        option.value = file + '.py'; // 修改：为文件名添加 .py 后缀
+                        option.textContent = file + '.py'; // 修改：为显示文本添加 .py 后缀
+                        pluginSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading plugin files:', error);
+                    alert('加载插件失败');
+                });
+        }
+    </script>
+</body>
+</html>

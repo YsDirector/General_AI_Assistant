@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="title">设置</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* 模态窗口样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+
+        /* 页面主体样式 */
+        .content {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start; /* 修改：添加 align-items: flex-start */
+            padding-right: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            margin-top: 0px; /* 修改：添加 margin-top: 0px */
+            margin-left: 20px;
+            padding-top: 0px;
+            padding-bottom: 0px;
+        }
+
+        .content h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        /* 新增：为新增按钮添加特定样式 */
+        .content button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 2px;
+            width: auto;
+        }
+
+        .content button:hover {
+            background-color: #0056b3;
+        }
+
+        .content ul {
+            list-style-type: none;
+            padding: 0;
+            width: 100%;
+        }
+
+        .content li {
+            background-color: #fff;
+            padding: 10px;
+            margin-top: 5px;
+            margin-bottom: 1px;
+            border-radius: 4px;
+            box-shadow: 0 -3px 0px rgba(0, 0, 0, 0.1);
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        label {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        input {
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        /* 修改：调整包含“添加”按钮的div样式 */
+        .content div {
+            display: flex;
+            justify-content: flex-end; /* 修改：将内容靠右对齐 */
+            align-items: center;
+        }
+
+        /* 新增：为“保存”按钮添加特定样式 */
+        .save-button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            width: auto;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <ul>
+            <li><button onclick="window.location.href='general.html'" data-i18n="general">通用</button></li>
+            <li><button onclick="window.location.href='plugin.html'" data-i18n="plugins">插件</button></li>
+            <li><button class="active" data-i18n="models">模型（AI）</button></li>
+            <li><button onclick="window.location.href='toolbar.html'" data-i18n="toolbar">工具栏</button></li>
+            <li><button onclick="window.location.href='about.html'" data-i18n="about">关于</button></li>
+        </ul>
+    </div>
+    <div class="content" style="width: 80%;">
+        <h1 data-i18n="models">模型（AI）</h1>
+        <div style="width: 100%; display: flex; justify-content: flex-end;">
+            <button onclick="openModal()" data-i18n="addModel">添加</button>
+        </div>
+        <ul id="model-list"></ul>
+    </div>
+
+    <!-- 模态窗口 -->
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 data-i18n="editModel">编辑模型</h2>
+            <form id="modelForm">
+                <label for="apiUrl" data-i18n="apiUrlLabel">API URL:</label>
+                <input type="text" id="apiUrl" name="apiUrl" required>
+                <label for="model" data-i18n="modelLabel">Model:</label>
+                <input type="text" id="model" name="model" required>
+                <label for="apiKey" data-i18n="apiKeyLabel">API Key:</label>
+                <input type="password" id="apiKey" name="apiKey">
+                <button type="submit" class="save-button" style="margin-top: 10px;width: 70px;" data-i18n="save">保存</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 加载模型列表
+        function loadModels() {
+            fetch('/getConfig/models.json')
+                .then(response => response.json())
+                .then(data => {
+                    const modelList = document.getElementById('model-list');
+                    modelList.innerHTML = ''; // 清空现有内容
+                    data.forEach((model, index) => {
+                        const li = document.createElement('li');
+                        li.style.display = 'flex';
+                        li.style.alignItems = 'center';
+                        li.style.padding = '0px';
+
+                        const modelName = document.createElement('span');
+                        modelName.textContent = model.Model;
+                        modelName.style.flexGrow = '1';
+
+                        const buttoncontent = document.createElement('div');
+                        buttoncontent.style.marginLeft = 'auto';
+
+                        const editButton = document.createElement('button');
+                        editButton.setAttribute('data-i18n', 'edit');
+                        editButton.onclick = function() {
+                            openModal(index);
+                        };
+
+                        const deleteButton = document.createElement('button');
+                        deleteButton.setAttribute('data-i18n', 'delete');
+                        deleteButton.onclick = function() {
+                            deleteModel(index);
+                        };
+
+                        buttoncontent.appendChild(editButton);
+                        buttoncontent.appendChild(deleteButton);
+
+                        li.appendChild(modelName);
+                        li.appendChild(buttoncontent);
+
+                        modelList.appendChild(li);
+                    });
+
+                    updateDynamicButtonContent();
+                })
+                .catch(error => {
+                    console.error('Error loading models:', error);
+                    getTranslatedText('loadModelFailed').then(text => alert(text));
+                });
+        }
+
+        // 更新动态按钮内容
+        function updateDynamicButtonContent() {
+            const savedLang = localStorage.getItem('selectedLanguage') || 'zh-CN';
+            fetch(`/locales/${savedLang}.json`)
+                .then(response => response.json())
+                .then(translations => {
+                    document.querySelectorAll('[data-i18n]').forEach(element => {
+                        const key = element.getAttribute('data-i18n');
+                        if (translations[key]) {
+                            element.textContent = translations[key];
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading translations:', error);
+                });
+        }
+
+        // 全局变量，用于跟踪当前编辑的模型索引
+        let currentModelIndex = null;
+
+        // 打开模态窗口
+        function openModal(index) {
+            document.getElementById('myModal').style.display = 'block';
+            if (index !== undefined) {
+                // 编辑现有模型
+                currentModelIndex = index; // 设置当前模型索引
+                fetch('/getConfig/models.json') // 修改为直接从配置文件加载数据
+                    .then(response => response.json())
+                    .then(data => {
+                        const model = data[index];
+                        document.getElementById('apiUrl').value = model.API_URL;
+                        document.getElementById('model').value = model.Model;
+                        document.getElementById('apiKey').value = model.API_Key;
+                    })
+                    .catch(error => {
+                        console.error('Error loading model:', error);
+                        alert('加载模型失败');
+                    });
+            } else {
+                // 添加新模型
+                currentModelIndex = null; // 清除当前模型索引
+                document.getElementById('apiUrl').value = '';
+                document.getElementById('model').value = '';
+                document.getElementById('apiKey').value = '';
+            }
+        }
+
+        // 删除模型
+        function deleteModel(index) {
+            getTranslatedText('confirmDeleteModel').then(text => {
+                if (confirm(text)) {
+                    // 修改为新的统一删除接口格式
+                    fetch(`/deleteConfig/models.json/${index}`, { method: 'DELETE' })
+                        .then(response => {
+                            if (response.ok) {
+                                loadModels(); // 刷新模型列表
+                            } else {
+                                console.error('Error deleting model');
+                                getTranslatedText('deleteModelFailed').then(text => alert(text));
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error deleting model:', error);
+                            getTranslatedText('deleteModelFailed').then(text => alert(text));
+                        });
+                }
+            });
+        }
+
+        // 关闭模态窗口
+        function closeModal() {
+            document.getElementById('myModal').style.display = 'none';
+        }
+
+        // 提交表单并保存模型
+        document.getElementById('modelForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const newModel = {
+                API_URL: formData.get('apiUrl'),
+                Model: formData.get('model'),
+                API_Key: formData.get('apiKey')
+            };
+
+            // 根据是否有 currentModelIndex 判断是添加新模型还是编辑现有模型
+            if (currentModelIndex !== null) {
+                // 编辑现有模型
+                fetch('/saveConfig/models.json', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        index: currentModelIndex,
+                        model: newModel,
+                        action: 'update'
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        getTranslatedText('modelUpdated').then(text => alert(text));
+                        closeModal();
+                        loadModels(); // 刷新模型列表
+                    } else {
+                        console.error('Error updating model');
+                        getTranslatedText('updateModelFailed').then(text => alert(text));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating model:', error);
+                    getTranslatedText('updateModelFailed').then(text => alert(text));
+                });
+            } else {
+                // 添加新模型
+                fetch('/saveConfig/models.json', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: newModel,
+                        action: 'add'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    getTranslatedText('modelSaved').then(text => alert(text));
+                    closeModal();
+                    loadModels(); // 刷新模型列表
+                })
+                .catch(error => {
+                    console.error('Error saving model:', error);
+                    getTranslatedText('saveModelFailed').then(text => alert(text));
+                });
+            }
+        });
+
+        // 语言切换逻辑
+        function changeLanguage(lang) {
+            document.documentElement.lang = lang;
+            fetch(`/locales/${lang}.json`)
+                .then(response => response.json())
+                .then(translations => {
+                    document.querySelectorAll('[data-i18n]').forEach(element => {
+                        const key = element.getAttribute('data-i18n');
+                        if (translations[key]) {
+                            element.textContent = translations[key];
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading translations:', error);
+                });
+            localStorage.setItem('selectedLanguage', lang);
+        }
+
+        function getTranslatedText(key) {
+            const savedLang = localStorage.getItem('selectedLanguage') || 'zh-CN';
+            return fetch(`/locales/${savedLang}.json`)
+                .then(response => response.json())
+                .then(translations => translations[key] || key);
+        }
+
+        // 页面加载时加载模型列表
+        window.onload = () => {
+            const savedLang = localStorage.getItem('selectedLanguage') || 'zh-CN';
+            document.documentElement.lang = savedLang;
+            changeLanguage(savedLang);
+            loadModels();
+        };
+    </script>
+</body>
+</html>
